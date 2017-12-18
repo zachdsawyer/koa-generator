@@ -27,14 +27,13 @@ before(program, 'outputHelp', function () {
 program
   .version(version)
   .usage('[options] [dir]')
-  .option('-e, --ejs', 'add ejs engine support (defaults to pug/jade)')
-  .option('    --hbs', 'add handlebars engine support')
-  .option('-n, --nunjucks', 'add nunjucks engine support')
-  .option('-H, --hogan', 'add hogan.js engine support')
-  .option('-c, --css <engine>', 'add stylesheet <engine> support (less|stylus|compass|sass) (defaults to plain css)')
-  .option('    --git', 'add .gitignore')
-  .option('-f, --force', 'force on non-empty directory')
+  .option('    --pixi', 'scaffold pixi')
+  .option('    --phaser', 'scaffold phaser')
+  .option('    --ecs', 'scaffold phaser with ECS')
   .parse(process.argv);
+  
+program.css = 'less';
+program.git = true;
 
 if (!exit.exited) {
   main();
@@ -102,7 +101,6 @@ function createApplication(app_name, path) {
   var app = loadTemplate('js/app.js');
   var www = loadTemplate('js/www');
   var index = loadTemplate('js/routes/index.js');
-  var users = loadTemplate('js/routes/users.js');
 
   // CSS
   var css = loadTemplate('css/style.css');
@@ -113,31 +111,45 @@ function createApplication(app_name, path) {
 
   mkdir(path, function(){
     mkdir(path + '/public');
-    mkdir(path + '/public/javascripts');
-    mkdir(path + '/public/images');
-    mkdir(path + '/public/stylesheets', function(){
+    mkdir(path + '/client');
+    write(path + '/client/main.js', `
+window._ = require('lodash');
+var IO = require('socket.io-client');
+var io = new IO();
+io.on('connect', function() {
+    console.log('wtf')
+});
+io.on('disconnect', function() {
+    setTimeout(function() {
+        window.location.reload(true);
+
+    }, 1500);
+});`);
+    mkdir(path + '/server');
+    mkdir(path + '/public/js');
+    mkdir(path + '/public/img');
+    mkdir(path + '/public/css', function(){
       switch (program.css) {
         case 'less':
-          write(path + '/public/stylesheets/style.less', less);
+          write(path + '/public/css/style.less', less);
           break;
         case 'stylus':
-          write(path + '/public/stylesheets/style.styl', stylus);
+          write(path + '/public/css/style.styl', stylus);
           break;
         case 'compass':
-          write(path + '/public/stylesheets/style.scss', compass);
+          write(path + '/public/css/style.scss', compass);
           break;
         case 'sass':
-          write(path + '/public/stylesheets/style.sass', sass);
+          write(path + '/public/css/style.sass', sass);
           break;
         default:
-          write(path + '/public/stylesheets/style.css', css);
+          write(path + '/public/css/style.css', css);
       }
       complete();
     });
 
     mkdir(path + '/routes', function(){
       write(path + '/routes/index.js', index);
-      write(path + '/routes/users.js', users);
       complete();
     });
 
@@ -195,10 +207,11 @@ function createApplication(app_name, path) {
       , version: '0.1.0'
       , private: true
       , "scripts": {
-        "start": "node bin/www",
-        "dev": "./node_modules/.bin/nodemon bin/www",
-        "prd": "pm2 start bin/www",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "dev": "concurrently --kill-others \"npm run watch\" \"nodemon --harmony ./bin/www\"",
+        "watch": "watchify client/main.js -o public/js/main.js -v",
+        "build": "browserify client/main.js -o public/js/main.js",
+        //"watchmore": "watchify client/vm.js -o public/js/vm.js",
+        "start": "node ./bin/www"
       }
       , "dependencies": {
         "debug": "^2.6.3",
@@ -206,11 +219,20 @@ function createApplication(app_name, path) {
         "koa-bodyparser": "^3.2.0",
         "koa-convert": "^1.2.0",
         "koa-json": "^2.0.2",
+        "koa-less2x": "^2.0.1",
         "koa-logger": "^2.0.1",
         "koa-onerror": "^1.2.1",
         "koa-router": "^7.1.1",
         "koa-static": "^3.0.0",
-        "koa-views": "^5.2.1"
+        "koa-views": "^5.2.1",
+        "concurrently": "^3.5.0",
+        "eventemitter3": "^2.0.3",
+        "knockout": "^3.4.2",
+        "lodash": "^4.17.4",
+        "phaser-ce": "^2.9.2",
+        "pixi.js": "^4.5.6",
+        "shortid": "^2.2.8",
+        "socket.io": "^2.0.4"
       }
       , "devDependencies": {
         "nodemon": "^1.8.1"
@@ -274,8 +296,51 @@ function createApplication(app_name, path) {
     if (program.git) {
       write(path + '/.gitignore', fs.readFileSync(__dirname + '/../templates2/js/gitignore', 'utf-8'));
     }
+    if(program.pixi){
+      appendFile(path + '/client/main.js',`
+window.PIXI = require('pixi.js');
+var app = new PIXI.Application({
+  backgroundColor: 0xffffff,
+  antialias: true
+});
+document.getElementById('container').appendChild(app.view);
+var g = new PIXI.Graphics();
+g.lineWidth = 1;
+g.lineColor = 0x521312;
+g.drawCircle(0, 0, 40);
+g.moveTo(0, 0);
+g.lineTo(40, 0);
 
+var spr = new PIXI.Sprite(g.generateCanvasTexture());
+spr.x = 100;
+spr.y = 100;
+spr.anchor.x = .5;
+spr.anchor.y = .5;
+app.stage.addChild(spr);
+app.ticker.add(function() {
+  spr.rotation += 0.01;
+});
+      `);
+    }
+    if(program.phaser){
+      
+    }
+    if(program.ecs){
+      
+    }
     complete();
+    console.log('auto running npm i');
+    const { exec } = require('child_process');
+    exec('npm i', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return;
+      }
+      console.log(`stdout: ${stdout}`);
+      console.log(`stderr: ${stderr}`);
+      console.log(`################## DONE #################`);
+    });
+
   });
 }
 
@@ -388,6 +453,10 @@ function main() {
 function write(path, str, mode) {
   fs.writeFileSync(path, str, { mode: mode || 0666 });
   console.log('   \x1b[36mcreate\x1b[0m : ' + path);
+}
+
+function appendFile(path, str) {
+  fs.appendFileSync(path, str);
 }
 
 /**

@@ -11,7 +11,7 @@
   "preferGlobal": true,
   "bin": {
     "koa": "./bin/koa",
-    "koa2": "./bin/koa2"
+    "koaz": "./bin/koa2"
   },
   "repository": {
     "type": "git",
