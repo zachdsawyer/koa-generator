@@ -296,6 +296,8 @@ io.on('disconnect', function() {
     if (program.git) {
       write(path + '/.gitignore', fs.readFileSync(__dirname + '/../templates2/js/gitignore', 'utf-8'));
     }
+      write(path + '/.jsbeautifyrc', fs.readFileSync(__dirname + '/../templates2/js/jsbeautifyrc', 'utf-8'));
+    
     if(program.pixi){
       appendFile(path + '/client/main.js',`
 window.PIXI = require('pixi.js');
