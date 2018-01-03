@@ -8,7 +8,7 @@
     // Documentation: https://github.com/einars/js-beautify/
     "html": {
         "allowed_file_extensions": ["htm", "html", "xhtml", "shtml", "xml", "svg", "dust"],
-        "brace_style": "collapse", // [collapse|expand|end-expand|none] Put braces on the same line as control statements (default), or put braces on own line (Allman / ANSI style), or just put end braces on own line, or attempt to keep them where they are
+        "brace_style": "collapse,preserve-inline", // [collapse|expand|end-expand|none] Put braces on the same line as control statements (default), or put braces on own line (Allman / ANSI style), or just put end braces on own line, or attempt to keep them where they are
         "end_with_newline": true, // End output with newline
         "indent_char": " ", // Indentation character
         "indent_handlebars": true, // e.g. {{#foo}}, {{/foo}}
